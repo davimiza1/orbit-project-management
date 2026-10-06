@@ -2,9 +2,11 @@
 
 A production-oriented MERN project management workspace.
 
+**Live app:** https://orbit-project-management.pages.dev
+
 ## Deployment
 
-The React workspace is configured for deployment from `client/dist`. The Express API remains a separately deployable Node.js service.
+The React workspace is deployed from `client/dist` to Cloudflare Pages. The Express API remains a separately deployable Node.js service.
 
 ## Run locally
 
