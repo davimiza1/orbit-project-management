@@ -21,10 +21,24 @@ const columns: { id: Status; label: string }[] = [
   { id: "in-review", label: "In review" },
   { id: "done", label: "Done" },
 ];
+const demoUser: User = { id: "demo-user", name: "Portfolio Guest", email: "demo@orbit.test" };
+const demoProjects: Project[] = [
+  { _id: "demo-atlas", name: "Atlas Website", key: "ATL", color: "#7f56d9" },
+  { _id: "demo-mobile", name: "Mobile App", key: "MOB", color: "#1463e9" },
+  { _id: "demo-growth", name: "Growth Experiments", key: "GRW", color: "#e8874f" },
+];
+const demoTasks: Task[] = [
+  { _id:"task-1",title:"Finalize homepage direction",description:"Review the latest visual direction and prepare the approved handoff.",status:"in-progress",priority:"High",label:"Design",project:"demo-atlas",assignee:{_id:"demo-user",name:"Portfolio Guest"},dueDate:"2026-11-18",comments:[],checklist:[{text:"Review responsive states",done:true},{text:"Approve final copy",done:false}],createdAt:"2026-11-13T09:00:00.000Z" },
+  { _id:"task-2",title:"Build analytics overview",description:"Create the core KPI view with loading and empty states.",status:"backlog",priority:"Medium",label:"Feature",project:"demo-atlas",assignee:{_id:"u-2",name:"Maya Chen"},dueDate:"2026-11-22",comments:[],checklist:[],createdAt:"2026-11-12T09:00:00.000Z" },
+  { _id:"task-3",title:"QA authentication flow",description:"Test sign in, password reset, and session expiry behavior.",status:"in-review",priority:"High",label:"Bug",project:"demo-atlas",assignee:{_id:"u-3",name:"Jon Bell"},dueDate:"2026-11-16",comments:[{_id:"c-1",text:"All desktop cases are passing.",author:{_id:"u-3",name:"Jon Bell"},createdAt:"2026-11-13T08:00:00.000Z"}],checklist:[],createdAt:"2026-11-11T09:00:00.000Z" },
+  { _id:"task-4",title:"Publish release notes",description:"Summarize the improvements included in this milestone.",status:"done",priority:"Low",label:"Content",project:"demo-atlas",assignee:{_id:"demo-user",name:"Portfolio Guest"},dueDate:"2026-11-13",comments:[],checklist:[],createdAt:"2026-11-10T09:00:00.000Z" },
+  { _id:"task-5",title:"Navigation prototype",description:"Validate the new mobile navigation with five users.",status:"in-progress",priority:"Medium",label:"Research",project:"demo-mobile",assignee:{_id:"u-2",name:"Maya Chen"},dueDate:"2026-11-25",comments:[],checklist:[],createdAt:"2026-11-09T09:00:00.000Z" },
+];
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [demo, setDemo] = useState(false);
   useEffect(() => {
     if (!session.get()) {
       setLoading(false);
@@ -39,6 +53,7 @@ export default function App() {
   if (!user)
     return (
       <Auth
+        onDemo={() => { setDemo(true); setUser(demoUser); }}
         onSuccess={(u, t) => {
           session.set(t);
           setUser(u);
@@ -48,8 +63,10 @@ export default function App() {
   return (
     <Workspace
       user={user}
+      demo={demo}
       onLogout={() => {
         session.clear();
+        setDemo(false);
         setUser(null);
       }}
       error={error}
@@ -58,7 +75,7 @@ export default function App() {
   );
 }
 
-function Auth({ onSuccess }: { onSuccess: (u: User, t: string) => void }) {
+function Auth({ onSuccess, onDemo }: { onSuccess: (u: User, t: string) => void; onDemo: () => void }) {
   const [register, setRegister] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -100,6 +117,11 @@ function Auth({ onSuccess }: { onSuccess: (u: User, t: string) => void }) {
             ? "Start managing real projects in under a minute."
             : "Sign in to continue to your projects."}
         </p>
+        <button type="button" className="demo-entry" onClick={onDemo}>
+          <span><strong>Explore the live demo</strong><small>No account needed · changes reset on refresh</small></span>
+          <span aria-hidden="true">→</span>
+        </button>
+        <div className="auth-divider"><span>or continue with an account</span></div>
         {register ? (
           <label>
             Name
@@ -148,11 +170,13 @@ function Auth({ onSuccess }: { onSuccess: (u: User, t: string) => void }) {
 
 function Workspace({
   user,
+  demo,
   onLogout,
   error,
   setError,
 }: {
   user: User;
+  demo: boolean;
   onLogout: () => void;
   error: string;
   setError: (v: string) => void;
@@ -171,23 +195,26 @@ function Workspace({
   const [modal, setModal] = useState<"task" | "project" | null>(null);
   const [notice, setNotice] = useState("");
   useEffect(() => {
+    if (demo) { setProjects(demoProjects); setActive(demoProjects[0]._id); return; }
     api<Project[]>("/projects")
       .then((items) => {
         setProjects(items);
         if (items[0]) setActive(items[0]._id);
       })
       .catch((e) => setError(e.message));
-  }, [setError]);
+  }, [setError, demo]);
   useEffect(() => {
     if (!active) return;
+    if (demo) { setTasks(demoTasks.filter((task) => task.project === active)); setSelected(null); return; }
     api<Task[]>(`/tasks?projectId=${active}`)
       .then((items) => {
         setTasks(items);
         setSelected(null);
       })
       .catch((e) => setError(e.message));
-  }, [active, setError]);
+  }, [active, setError, demo]);
   const updateTask = async (task: Task, patch: Partial<Task>) => {
+    if (demo) { const saved={...task,...patch}; setTasks((all)=>all.map((x)=>x._id===task._id?saved:x)); setSelected(saved); setNotice("Demo task updated"); setTimeout(()=>setNotice(""),1800); return; }
     try {
       const saved = await api<Task>(`/tasks/${task._id}`, {
         method: "PATCH",
@@ -297,9 +324,11 @@ function Workspace({
             </button>
           </div>
         </header>
+        {demo ? <div className="demo-banner"><strong>Interactive demo</strong><span>Everything works, but your changes stay in this tab and reset on refresh.</span></div> : null}
         {view === "settings" ? (
           <Settings
             project={activeProject}
+            demo={demo}
             onSaved={(saved) =>
               setProjects((all) =>
                 all.map((project) =>
@@ -399,6 +428,7 @@ function Workspace({
           onClose={() => setSelected(null)}
           onUpdate={(p) => updateTask(selected, p)}
           onComment={async (text) => {
+            if (demo) { const comment={_id:`demo-comment-${Date.now()}`,text,author:{_id:user.id,name:user.name},createdAt:new Date().toISOString()}; updateTask(selected,{comments:[...selected.comments,comment]}); return; }
             const saved = await api<Task>(`/tasks/${selected._id}/comments`, {
               method: "POST",
               body: JSON.stringify({ text }),
@@ -408,6 +438,7 @@ function Workspace({
           }}
           onDelete={async () => {
             if (confirm("Delete this task?")) {
+              if (demo) { setTasks((a)=>a.filter((x)=>x._id!==selected._id)); setSelected(null); setNotice("Demo task deleted"); setTimeout(()=>setNotice(""),1800); return; }
               await api(`/tasks/${selected._id}`, { method: "DELETE" });
               setTasks((a) => a.filter((x) => x._id !== selected._id));
               setSelected(null);
@@ -418,6 +449,7 @@ function Workspace({
       {modal === "task" ? (
         <TaskModal
           projectId={active}
+          demo={demo}
           onClose={() => setModal(null)}
           onCreated={(t) => {
             setTasks((a) => [t, ...a]);
@@ -428,6 +460,7 @@ function Workspace({
       ) : null}
       {modal === "project" ? (
         <ProjectModal
+          demo={demo}
           onClose={() => setModal(null)}
           onCreated={(p) => {
             setProjects((a) => [...a, p]);
@@ -493,9 +526,11 @@ function Overview({ tasks, projects }: { tasks: Task[]; projects: Project[] }) {
 }
 function Settings({
   project,
+  demo,
   onSaved,
 }: {
   project?: Project;
+  demo: boolean;
   onSaved: (project: Project) => void;
 }) {
   const [name, setName] = useState(project?.name || "");
@@ -511,7 +546,7 @@ function Settings({
       className="settings-view"
       onSubmit={async (event) => {
         event.preventDefault();
-        onSaved(
+        onSaved(demo ? {...project,name,color} :
           await api<Project>(`/projects/${project._id}`, {
             method: "PATCH",
             body: JSON.stringify({ name, color }),
@@ -547,10 +582,12 @@ function Settings({
 }
 function TaskModal({
   projectId,
+  demo,
   onClose,
   onCreated,
 }: {
   projectId: string;
+  demo: boolean;
   onClose: () => void;
   onCreated: (t: Task) => void;
 }) {
@@ -561,6 +598,11 @@ function TaskModal({
     setBusy(true);
     const fd = new FormData(e.currentTarget);
     try {
+      if (demo) {
+        const values=Object.fromEntries(fd);
+        onCreated({_id:`demo-task-${Date.now()}`,title:String(values.title),description:String(values.description||""),status:values.status as Status,priority:values.priority as Priority,label:"Feature",project:projectId,assignee:{_id:demoUser.id,name:demoUser.name},dueDate:String(values.dueDate||""),comments:[],checklist:[],createdAt:new Date().toISOString()});
+        return;
+      }
       onCreated(
         await api<Task>("/tasks", {
           method: "POST",
@@ -602,9 +644,9 @@ function TaskModal({
           </label>
           <label>
             Priority
-            <select name="priority">
+            <select name="priority" defaultValue="Medium">
               <option>Low</option>
-              <option selected>Medium</option>
+              <option>Medium</option>
               <option>High</option>
             </select>
           </label>
@@ -627,15 +669,18 @@ function TaskModal({
   );
 }
 function ProjectModal({
+  demo,
   onClose,
   onCreated,
 }: {
+  demo: boolean;
   onClose: () => void;
   onCreated: (p: Project) => void;
 }) {
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
+    if (demo) { const values=Object.fromEntries(fd); const name=String(values.name); onCreated({_id:`demo-project-${Date.now()}`,name,key:name.slice(0,3).toUpperCase(),color:String(values.color)}); return; }
     onCreated(
       await api<Project>("/projects", {
         method: "POST",

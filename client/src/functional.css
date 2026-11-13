@@ -1,6 +1,28 @@
 .no-drawer {
   grid-template-columns: 224px minmax(720px, 1fr);
 }
+.demo-entry {
+  width: 100%;
+  border: 1px solid #b9d1fa;
+  background: #f0f6ff;
+  color: #075bd8;
+  border-radius: 8px;
+  padding: 14px 15px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  margin-top: 20px;
+}
+.demo-entry > span:first-child { display: grid; gap: 4px; }
+.demo-entry strong { font-size: 13px; }
+.demo-entry small { color: #5c6f8f; font-size: 10px; }
+.demo-entry > span:last-child { font-size: 22px; }
+.auth-divider { display: flex; align-items: center; gap: 12px; margin: 18px 0 2px; color: #8a92a2; font-size: 9px; text-transform: uppercase; letter-spacing: .08em; }
+.auth-divider::before,.auth-divider::after { content: ""; height: 1px; background: var(--border); flex: 1; }
+.demo-banner { min-height: 38px; background: #fff7df; border-bottom: 1px solid #ead89f; color: #725815; display: flex; align-items: center; gap: 12px; padding: 8px 22px; font-size: 11px; }
+.demo-banner strong { text-transform: uppercase; letter-spacing: .06em; font-size: 9px; }
+@media(max-width:720px){.demo-banner{align-items:flex-start;flex-direction:column;gap:3px}}
 .bare {
   border: 0;
   background: transparent;
