@@ -9,7 +9,7 @@ import {
   Share2,
   SlidersHorizontal,
 } from "lucide-react";
-import { api, session } from "./api";
+import { api } from "./api";
 import { Sidebar } from "./components/Sidebar";
 import { TaskCard } from "./components/TaskCard";
 import { TaskDrawer } from "./components/TaskDrawer";
@@ -35,136 +35,15 @@ const demoTasks: Task[] = [
   { _id:"task-5",title:"Navigation prototype",description:"Validate the new mobile navigation with five users.",status:"in-progress",priority:"Medium",label:"Research",project:"demo-mobile",assignee:{_id:"u-2",name:"Maya Chen"},dueDate:"2026-11-25",comments:[],checklist:[],createdAt:"2026-11-09T09:00:00.000Z" },
 ];
 export default function App() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [demo, setDemo] = useState(false);
-  useEffect(() => {
-    if (!session.get()) {
-      setLoading(false);
-      return;
-    }
-    api<{ user: User }>("/auth/me")
-      .then((x) => setUser(x.user))
-      .catch(() => session.clear())
-      .finally(() => setLoading(false));
-  }, []);
-  if (loading) return <div className="splash">Loading Orbit…</div>;
-  if (!user)
-    return (
-      <Auth
-        onDemo={() => { setDemo(true); setUser(demoUser); }}
-        onSuccess={(u, t) => {
-          session.set(t);
-          setUser(u);
-        }}
-      />
-    );
   return (
     <Workspace
-      user={user}
-      demo={demo}
-      onLogout={() => {
-        session.clear();
-        setDemo(false);
-        setUser(null);
-      }}
+      user={demoUser}
+      demo
+      onLogout={() => location.reload()}
       error={error}
       setError={setError}
     />
-  );
-}
-
-function Auth({ onSuccess, onDemo }: { onSuccess: (u: User, t: string) => void; onDemo: () => void }) {
-  const [register, setRegister] = useState(true);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  async function submit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setBusy(true);
-    setError("");
-    const fd = new FormData(e.currentTarget);
-    try {
-      const result = await api<{ token: string; user: User }>(
-        `/auth/${register ? "register" : "login"}`,
-        { method: "POST", body: JSON.stringify(Object.fromEntries(fd)) },
-      );
-      onSuccess(result.user, result.token);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to continue");
-    } finally {
-      setBusy(false);
-    }
-  }
-  return (
-    <main className="auth-page">
-      <section className="auth-brand">
-        <div className="brand">orbit</div>
-        <h1>
-          Plan clearly.
-          <br />
-          Ship confidently.
-        </h1>
-        <p>
-          A focused project workspace for teams who want less ceremony and more
-          momentum.
-        </p>
-      </section>
-      <form className="auth-card" onSubmit={submit}>
-        <h2>{register ? "Create your workspace" : "Welcome back"}</h2>
-        <p>
-          {register
-            ? "Start managing real projects in under a minute."
-            : "Sign in to continue to your projects."}
-        </p>
-        <button type="button" className="demo-entry" onClick={onDemo}>
-          <span><strong>Explore the live demo</strong><small>No account needed · changes reset on refresh</small></span>
-          <span aria-hidden="true">→</span>
-        </button>
-        <div className="auth-divider"><span>or continue with an account</span></div>
-        {register ? (
-          <label>
-            Name
-            <input name="name" required minLength={2} placeholder="Your name" />
-          </label>
-        ) : null}
-        <label>
-          Email
-          <input
-            name="email"
-            type="email"
-            required
-            placeholder="you@example.com"
-          />
-        </label>
-        <label>
-          Password
-          <input
-            name="password"
-            type="password"
-            required
-            minLength={8}
-            placeholder="At least 8 characters"
-          />
-        </label>
-        {error ? <div className="form-error">{error}</div> : null}
-        <button className="primary auth-submit" disabled={busy}>
-          {busy ? "Please wait…" : register ? "Create account" : "Sign in"}
-        </button>
-        <button
-          type="button"
-          className="auth-switch"
-          onClick={() => {
-            setRegister((x) => !x);
-            setError("");
-          }}
-        >
-          {register
-            ? "Already have an account? Sign in"
-            : "New to Orbit? Create an account"}
-        </button>
-      </form>
-    </main>
   );
 }
 

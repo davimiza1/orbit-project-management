@@ -28,4 +28,4 @@ The React app runs on `http://localhost:5173`; the API runs on `http://localhost
 
 ## Portfolio demo
 
-Choose **Explore the live demo** on the welcome screen. Visitors can create projects and tasks, update task status, priority, checklists and comments, and explore every view without creating an account. Demo changes remain only in the current browser tab and reset on refresh, so shared production data is never modified.
+The live link opens directly in demo mode—no sign-up or login is shown. Visitors can create projects and tasks, update task status, priority, checklists and comments, and explore every view. Demo changes remain only in the current browser tab and reset on refresh, so shared production data is never modified.
